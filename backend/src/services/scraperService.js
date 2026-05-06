@@ -25,8 +25,15 @@ export const scrapeHackerNews = async () => {
 
       const author = subtext.find(".hnuser").text();
 
-      const timeText = subtext.find(".age").attr("title");
-      const postedAt = timeText ? new Date(timeText) : new Date();
+      let postedAt;
+      
+      const timeAttr = subtext.find(".age").attr("title");
+      if (timeAttr && !isNaN(new Date(timeAttr))) {
+        postedAt = new Date(timeAttr);
+      } 
+      else {
+        postedAt = new Date(); // fallback
+      }
 
       stories.push({
         title,
