@@ -6,6 +6,8 @@ import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
 
+import scraperRoutes from "./routes/scraperRoutes.js";
+
 dotenv.config({ path: new URL("./.env", import.meta.url) });
 
 // Connect Database
@@ -42,6 +44,8 @@ app.get("/", (req, res) => {
     message: "HNexus API is running...",
   });
 });
+
+app.use("/api", scraperRoutes);
 
 // ❌ 404 Handler
 app.use((req, res) => {

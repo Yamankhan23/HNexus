@@ -1,5 +1,5 @@
 import axios from "axios";
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 import Story from "../models/Story.js";
 
 const HN_URL = "https://news.ycombinator.com";
