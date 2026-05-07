@@ -11,7 +11,7 @@ import scraperRoutes from "./routes/scraperRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import storyRoutes from "./routes/storyRoutes.js";
 
-dotenv.config({ path: new URL("./.env", import.meta.url) });
+dotenv.config();
 
 // Connect Database
 connectDB();
