@@ -3,7 +3,7 @@ import generateToken from "../utils/generateToken.js";
 
 // @desc Register user
 // @route POST /api/auth/register
-export const registerUser = async (req, res, next) => {
+export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -42,13 +42,18 @@ export const registerUser = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(error);
+    console.error("Register Error:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error during registration",
+    });
   }
 };
 
 // @desc Login user
 // @route POST /api/auth/login
-export const loginUser = async (req, res, next) => {
+export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -72,6 +77,11 @@ export const loginUser = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(error);
+    console.error("Login Error:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error during login",
+    });
   }
 };
