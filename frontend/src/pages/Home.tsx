@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 
@@ -13,22 +13,46 @@ function Home() {
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
 
   // FETCH STORIES
-  const fetchStories = async () => {
+  const fetchStories = useCallback(async () => {
     try {
       setLoading(true);
 
       const res = await api.get("/stories");
       setStories(res.data.stories);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load stories");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStories();
-  }, []);
+  }, [fetchStories]);
+
+  const fetchBookmarks = useCallback(async () => {
+    if (!token) {
+      setBookmarked(new Set());
+      return;
+    }
+
+    try {
+      const res = await api.get("/stories/bookmarks", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const ids = res.data.stories.map((story: Story) => story._id);
+      setBookmarked(new Set(ids));
+    } catch {
+      toast.error("Failed to load bookmarks");
+    }
+  }, [token]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchBookmarks();
+  }, [fetchBookmarks]);
 
   // TOGGLE BOOKMARK (Optimistic UI)
   const toggleBookmark = async (id: string) => {
@@ -43,7 +67,7 @@ function Home() {
     setBookmarked(updated);
 
     try {
-      await api.post(
+      const res = await api.post(
         `/stories/${id}/bookmark`,
         {},
         {
@@ -51,8 +75,12 @@ function Home() {
         }
       );
 
-      toast.success(isSaved ? "Removed from bookmarks" : "Saved to bookmarks");
-    } catch (err) {
+      const serverBookmarks = new Set<string>(res.data.bookmarks);
+      setBookmarked(serverBookmarks);
+      toast.success(
+        res.data.bookmarked ? "Saved to bookmarks" : "Removed from bookmarks"
+      );
+    } catch {
       setBookmarked(new Set(bookmarked));
       toast.error("Failed to update bookmark");
     }

@@ -113,7 +113,9 @@ export const toggleBookmark = async (req, res) => {
       message: alreadyBookmarked
         ? "Bookmark removed"
         : "Story bookmarked",
-      bookmarks: user.bookmarks,
+      bookmarked: !alreadyBookmarked,
+      story,
+      bookmarks: user.bookmarks.map((id) => id.toString()),
     });
   } catch (error) {
     console.error("Bookmark Error:", error.message);
@@ -127,7 +129,10 @@ export const toggleBookmark = async (req, res) => {
 
 export const getBookmarkedStories = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate("bookmarks");
+    const user = await User.findById(req.user._id).populate({
+      path: "bookmarks",
+      options: { sort: { createdAt: -1 } },
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -136,9 +141,12 @@ export const getBookmarkedStories = async (req, res) => {
       });
     }
 
+    const stories = user.bookmarks.filter(Boolean);
+
     res.status(200).json({
       success: true,
-      stories: user.bookmarks,
+      count: stories.length,
+      stories,
     });
   } catch (err) {
     res.status(500).json({
