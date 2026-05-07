@@ -8,6 +8,7 @@ import connectDB from "./config/db.js";
 
 import scraperRoutes from "./routes/scraperRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import storyRoutes from "./routes/storyRoutes.js";
 
 dotenv.config({ path: new URL("./.env", import.meta.url) });
 
@@ -48,6 +49,7 @@ app.get("/", (req, res) => {
 
 app.use("/api", scraperRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/stories", storyRoutes);
 
 // ❌ 404 Handler
 app.use((req, res) => {
