@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import api from "../api/axios";
 import type { Story } from "../types";
 
+const STORIES_PER_PAGE = 10;
+
 const formatPostedAt = (postedAt?: string) => {
   if (!postedAt) return "Unknown time";
 
@@ -21,6 +23,9 @@ const formatPostedAt = (postedAt?: string) => {
 function Home() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalStories, setTotalStories] = useState(0);
 
   const { token } = useAuth();
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
@@ -30,14 +35,22 @@ function Home() {
     try {
       setLoading(true);
 
-      const res = await api.get("/stories");
+      const res = await api.get("/stories", {
+        params: {
+          page,
+          limit: STORIES_PER_PAGE,
+        },
+      });
+
       setStories(res.data.stories);
+      setTotalPages(res.data.totalPages || 1);
+      setTotalStories(res.data.totalStories || 0);
     } catch {
       toast.error("Failed to load stories");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -99,6 +112,21 @@ function Home() {
     }
   };
 
+  const goToPage = (nextPage: number) => {
+    if (nextPage < 1 || nextPage > totalPages || nextPage === page) return;
+
+    setPage(nextPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const visiblePages = Array.from({ length: totalPages }, (_, index) => index + 1)
+    .filter(
+      (pageNumber) =>
+        pageNumber === 1 ||
+        pageNumber === totalPages ||
+        Math.abs(pageNumber - page) <= 1
+    );
+
   // LOADING STATE
   if (loading) {
   return (
@@ -125,14 +153,25 @@ function Home() {
       <div className="max-w-3xl mx-auto px-4 py-10">
 
         {/* HEADER */}
-        <h1 className="text-4xl font-bold tracking-tight mb-8">
-          Top Hacker News Stories
-        </h1>
+        <div className="flex flex-col gap-2 mb-8 sm:flex-row sm:items-end sm:justify-between">
+          <h1 className="text-4xl font-bold tracking-tight">
+            Top Hacker News Stories
+          </h1>
+
+          {totalStories > 0 && (
+            <p className="text-sm text-slate-500">
+              Showing {(page - 1) * STORIES_PER_PAGE + 1}-
+              {Math.min(page * STORIES_PER_PAGE, totalStories)} of{" "}
+              {totalStories}
+            </p>
+          )}
+        </div>
 
         {/* EMPTY STATE */}
         {stories.length === 0 ? (
           <p className="text-slate-500">No stories found</p>
         ) : (
+          <>
           <div className="space-y-4">
 
             {stories.map((story) => (
@@ -188,6 +227,52 @@ function Home() {
             ))}
 
           </div>
+
+          {totalPages > 1 && (
+            <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-[#CAE9F5] bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                onClick={() => goToPage(page - 1)}
+                disabled={page === 1}
+                className="px-4 py-2 rounded-xl text-sm font-medium border border-[#CAE9F5] text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#F0F8FF]"
+              >
+                Previous
+              </button>
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {visiblePages.map((pageNumber, index) => {
+                  const previousPage = visiblePages[index - 1];
+                  const hasGap = previousPage && pageNumber - previousPage > 1;
+
+                  return (
+                    <div key={pageNumber} className="flex items-center gap-2">
+                      {hasGap && (
+                        <span className="text-sm text-slate-400">...</span>
+                      )}
+                      <button
+                        onClick={() => goToPage(pageNumber)}
+                        className={`h-9 min-w-9 rounded-xl px-3 text-sm font-medium transition ${
+                          pageNumber === page
+                            ? "bg-[#86C5D8] text-white"
+                            : "border border-[#CAE9F5] bg-white text-slate-700 hover:bg-[#F0F8FF]"
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => goToPage(page + 1)}
+                disabled={page === totalPages}
+                className="px-4 py-2 rounded-xl text-sm font-medium border border-[#CAE9F5] text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#F0F8FF]"
+              >
+                Next
+              </button>
+            </div>
+          )}
+          </>
         )}
 
       </div>
