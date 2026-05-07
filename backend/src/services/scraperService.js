@@ -1,6 +1,39 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import Story from "../models/Story.js";
+import User from "../models/User.js";
+
+const DEFAULT_SCRAPE_LIMIT = 30;
+const HN_BASE_URL = "https://news.ycombinator.com/";
+
+const getScrapeLimit = () => {
+  const configuredLimit = Number(process.env.HN_SCRAPE_LIMIT);
+
+  if (!Number.isInteger(configuredLimit) || configuredLimit < 1) {
+    return DEFAULT_SCRAPE_LIMIT;
+  }
+
+  return configuredLimit;
+};
+
+const parsePostedAt = (rawPostedAt) => {
+  if (!rawPostedAt) return new Date();
+
+  const isoValue = rawPostedAt.trim().split(/\s+/)[0];
+  const parsedDate = new Date(isoValue);
+
+  return Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+};
+
+const normalizeUrl = (url) => {
+  if (!url) return HN_BASE_URL;
+
+  try {
+    return new URL(url, HN_BASE_URL).toString();
+  } catch {
+    return url;
+  }
+};
 
 export const scrapeHackerNews = async () => {
   try {
@@ -20,50 +53,73 @@ export const scrapeHackerNews = async () => {
     const $ = cheerio.load(data);
 
     const stories = [];
+    const scrapedAt = new Date();
+    const scrapeLimit = getScrapeLimit();
 
     $(".athing").each((index, element) => {
-      if (index >= 10) return false;
+      if (stories.length >= scrapeLimit) return false;
 
-      const titleElement = $(element).find(".titleline a");
+      const titleElement = $(element).find(".titleline > a").first();
       const title = titleElement.text().trim();
-      const url = titleElement.attr("href") || "";
+      const url = normalizeUrl(titleElement.attr("href"));
+      const hnId = $(element).attr("id");
+      const rankText = $(element).find(".rank").text();
+      const rank = parseInt(rankText.replace(/\D/g, ""), 10) || index + 1;
 
       const subtext = $(element).next();
 
       const pointsText = subtext.find(".score").text();
-      const points = pointsText
-        ? parseInt(pointsText.replace(/[^0-9]/g, "")) || 0
-        : 0;
+      const points = parseInt(pointsText.replace(/[^0-9]/g, ""), 10);
 
-      const author = subtext.find(".hnuser").text() || "unknown";
+      const author = subtext.find(".hnuser").text().trim();
 
       const timeAttr = subtext.find(".age").attr("title");
+      const postedAt = parsePostedAt(timeAttr);
 
-      const postedAt =
-        timeAttr && !isNaN(Date.parse(timeAttr))
-          ? new Date(timeAttr)
-          : new Date();
-
-      // basic validation (production safety)
-      if (!title) return;
+      if (!title || !author || Number.isNaN(points)) return;
 
       stories.push({
+        hnId,
         title,
         url,
         points,
         author,
         postedAt,
+        rank,
+        isActive: true,
+        scrapedAt,
       });
     });
 
-    // upsert (avoids duplicates + keeps fresh data)
-    for (const story of stories) {
-      await Story.updateOne(
-        { title: story.title, author: story.author },
-        { $set: story },
-        { upsert: true }
-      );
+    if (stories.length === 0) {
+      throw new Error("No Hacker News stories found to scrape");
     }
+
+    await Story.updateMany({}, { $set: { isActive: false } });
+
+    await Story.bulkWrite(
+      stories.map((story) => ({
+        updateOne: {
+          filter: story.hnId
+            ? {
+                $or: [
+                  { hnId: story.hnId },
+                  { title: story.title, author: story.author },
+                ],
+              }
+            : { title: story.title, author: story.author },
+          update: { $set: story },
+          upsert: true,
+        },
+      }))
+    );
+
+    const bookmarkedStoryIds = await User.distinct("bookmarks");
+
+    await Story.deleteMany({
+      isActive: false,
+      _id: { $nin: bookmarkedStoryIds },
+    });
 
     return {
       success: true,

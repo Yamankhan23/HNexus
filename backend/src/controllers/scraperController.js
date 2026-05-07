@@ -8,6 +8,7 @@ export const triggerScraper = async (req, res, next) => {
       success: true,
       message: "Scraping completed",
       count: result.count,
+      stories: result.data,
     });
   } catch (error) {
     next(error);

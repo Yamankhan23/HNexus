@@ -6,22 +6,23 @@ import mongoose from "mongoose";
 // @route GET /api/stories
 export const getStories = async (req, res) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 50);
+    const activeStoriesFilter = { isActive: true };
 
     const skip = (page - 1) * limit;
 
-    const stories = await Story.find()
-      .sort({ points: -1 })
+    const stories = await Story.find(activeStoriesFilter)
+      .sort({ points: -1, rank: 1 })
       .skip(skip)
       .limit(limit);
 
-    const totalStories = await Story.countDocuments();
+    const totalStories = await Story.countDocuments(activeStoriesFilter);
 
     res.status(200).json({
       success: true,
       page,
-      totalPages: Math.ceil(totalStories / limit),
+      totalPages: Math.max(Math.ceil(totalStories / limit), 1),
       totalStories,
       count: stories.length,
       stories,
