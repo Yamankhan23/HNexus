@@ -2,10 +2,10 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import Story from "../models/Story.js";
 
-const HN_URL = process.env.HN_URL;
-
 export const scrapeHackerNews = async () => {
   try {
+    const HN_URL = process.env.HN_URL;
+
     if (!HN_URL) {
       throw new Error("HN_URL is not defined in environment variables");
     }
