@@ -2,38 +2,50 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import Story from "../models/Story.js";
 
-const HN_URL = "https://news.ycombinator.com";
+const HN_URL = process.env.HN_URL;
 
 export const scrapeHackerNews = async () => {
   try {
-    const { data } = await axios.get(HN_URL);
+    if (!HN_URL) {
+      throw new Error("HN_URL is not defined in environment variables");
+    }
+
+    const { data } = await axios.get(HN_URL, {
+      timeout: 10000, // production safety
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+      },
+    });
+
     const $ = cheerio.load(data);
 
     const stories = [];
 
     $(".athing").each((index, element) => {
-      if (index >= 10) return false; // Top 10 only
+      if (index >= 10) return false;
 
       const titleElement = $(element).find(".titleline a");
-      const title = titleElement.text();
-      const url = titleElement.attr("href") || null;
+      const title = titleElement.text().trim();
+      const url = titleElement.attr("href") || "";
 
       const subtext = $(element).next();
 
       const pointsText = subtext.find(".score").text();
-      const points = pointsText ? parseInt(pointsText) : 0;
+      const points = pointsText
+        ? parseInt(pointsText.replace(/[^0-9]/g, "")) || 0
+        : 0;
 
-      const author = subtext.find(".hnuser").text();
+      const author = subtext.find(".hnuser").text() || "unknown";
 
-      let postedAt;
-      
       const timeAttr = subtext.find(".age").attr("title");
-      if (timeAttr && !isNaN(new Date(timeAttr))) {
-        postedAt = new Date(timeAttr);
-      } 
-      else {
-        postedAt = new Date(); // fallback
-      }
+
+      const postedAt =
+        timeAttr && !isNaN(Date.parse(timeAttr))
+          ? new Date(timeAttr)
+          : new Date();
+
+      // basic validation (production safety)
+      if (!title) return;
 
       stories.push({
         title,
@@ -44,7 +56,7 @@ export const scrapeHackerNews = async () => {
       });
     });
 
-    // Insert into DB (avoid duplicates)
+    // upsert (avoids duplicates + keeps fresh data)
     for (const story of stories) {
       await Story.updateOne(
         { title: story.title, author: story.author },
