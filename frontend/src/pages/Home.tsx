@@ -60,12 +60,24 @@ function Home() {
 
   // LOADING STATE
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F0F8FF] flex items-center justify-center text-slate-500">
-        Loading stories...
+  return (
+    <div className="min-h-screen bg-[#F0F8FF]">
+      <div className="max-w-3xl mx-auto px-4 py-10 space-y-4">
+
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="p-5 rounded-2xl bg-white border border-[#CAE9F5] animate-pulse"
+          >
+            <div className="h-4 bg-[#E0F2FE] rounded w-3/4 mb-3" />
+            <div className="h-3 bg-[#E0F2FE] rounded w-1/2" />
+          </div>
+        ))}
+
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-[#F0F8FF] text-slate-900">
