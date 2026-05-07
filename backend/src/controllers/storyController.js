@@ -1,5 +1,6 @@
 import Story from "../models/Story.js";
 import User from "../models/User.js";
+import mongoose from "mongoose";
 
 // @desc Get all stories
 // @route GET /api/stories
@@ -68,6 +69,22 @@ export const toggleBookmark = async (req, res) => {
   try {
     const storyId = req.params.id;
 
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid story id",
+      });
+    }
+
+    const story = await Story.findById(storyId);
+
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: "Story not found",
+      });
+    }
+
     const user = await User.findById(req.user._id);
 
     if (!user) {
@@ -77,7 +94,9 @@ export const toggleBookmark = async (req, res) => {
       });
     }
 
-    const alreadyBookmarked = user.bookmarks.includes(storyId);
+    const alreadyBookmarked = user.bookmarks.some(
+      (id) => id.toString() === storyId
+    );
 
     if (alreadyBookmarked) {
       user.bookmarks = user.bookmarks.filter(
@@ -108,9 +127,16 @@ export const toggleBookmark = async (req, res) => {
 
 export const getBookmarkedStories = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate("bookmarks");
+    const user = await User.findById(req.user._id).populate("bookmarks");
 
-    res.json({
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
       success: true,
       stories: user.bookmarks,
     });

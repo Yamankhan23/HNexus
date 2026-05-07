@@ -5,6 +5,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
+import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
 import scraperRoutes from "./routes/scraperRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -50,6 +51,9 @@ app.get("/", (req, res) => {
 app.use("/api", scraperRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/stories", storyRoutes);
+
+app.use(notFound);
+app.use(errorHandler);
 
 // ❌ 404 Handler
 app.use((req, res) => {
