@@ -6,6 +6,19 @@ import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import type { Story } from "../types";
 
+const formatPostedAt = (postedAt?: string) => {
+  if (!postedAt) return "Unknown time";
+
+  const date = new Date(postedAt);
+
+  if (Number.isNaN(date.getTime())) return "Unknown time";
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
 function Bookmarks() {
   const { token } = useAuth();
   const [stories, setStories] = useState<Story[]>([]);
@@ -125,10 +138,15 @@ function Bookmarks() {
                   {story.title}
                 </h2>
 
-                <div className="flex justify-between items-center mt-3">
-                  <p className="text-sm text-slate-500">
-                    {story.points} points - {story.author}
-                  </p>
+                <div className="flex justify-between items-end gap-4 mt-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">
+                      {story.points} points by {story.author}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Posted {formatPostedAt(story.postedAt)}
+                    </p>
+                  </div>
 
                   <button
                     onClick={() => removeBookmark(story._id)}

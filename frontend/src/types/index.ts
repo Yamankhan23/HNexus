@@ -19,9 +19,13 @@ export interface AuthContextType {
 
 export interface Story {
   _id: string;
+  hnId?: string;
   title: string;
   url: string;
   points: number;
   author: string;
   postedAt: string;
+  rank?: number;
+  isActive?: boolean;
+  scrapedAt?: string;
 }

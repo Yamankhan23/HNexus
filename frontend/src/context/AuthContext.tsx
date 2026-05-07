@@ -1,7 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
-  useEffect,
   useState,
 } from "react";
 
@@ -13,25 +13,22 @@ import type {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const getStoredUser = () => {
+  const storedUser = localStorage.getItem("user");
+
+  return storedUser ? JSON.parse(storedUser) : null;
+};
+
 export const AuthProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(getStoredUser);
 
-  const [token, setToken] = useState<string | null>(null);
-
-  // Restore auth state
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedToken = localStorage.getItem("token");
-
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
-    }
-  }, []);
+  const [token, setToken] = useState<string | null>(() =>
+    localStorage.getItem("token")
+  );
 
   // Login
   const login = (data: AuthResponse) => {
