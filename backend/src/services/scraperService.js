@@ -73,7 +73,6 @@ export const scrapeHackerNews = async () => {
   const scrapeStartedAt = new Date();
 
   try {
-    const hnUrl = getRequiredEnv("HN_URL");
     const hnBaseUrl = getRequiredEnv("HN_BASE_URL");
     const scrapeLimit = getPositiveIntegerEnv("HN_SCRAPE_LIMIT");
     const requestTimeoutMs = getPositiveIntegerEnv(
@@ -82,7 +81,7 @@ export const scrapeHackerNews = async () => {
     const userAgent = getRequiredEnv("HN_USER_AGENT");
 
     const { data } = await fetchWithRetry(
-      hnUrl,
+      hnBaseUrl,
       {
         timeout: requestTimeoutMs,
         headers: {
