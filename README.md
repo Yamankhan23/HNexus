@@ -28,8 +28,10 @@ Create `backend/.env`:
 PORT=4000
 MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/hnexus
 JWT_SECRET=replace_with_a_long_random_secret
-HN_URL=https://news.ycombinator.com/
+HN_BASE_URL=https://news.ycombinator.com/
 HN_SCRAPE_LIMIT=30
+HN_REQUEST_TIMEOUT_MS=10000
+HN_USER_AGENT=Mozilla/5.0
 ```
 
 Create `frontend/.env`:
